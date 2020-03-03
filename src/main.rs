@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::prelude::*;
 use std::net::TcpStream;
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
@@ -149,7 +149,7 @@ impl<T: Read + Write + imap::extensions::idle::SetReadTimeout> Connection<T> {
 
             if !subjects.is_empty() {
                 if let Some(notificationcmd) = &self.account.notification_command {
-                    match Command::new("sh").arg("-c").arg(notificationcmd).status() {
+                    match Command::new("sh").stdout(Stdio::null()).stderr(Stdio::null()).arg("-c").arg(notificationcmd).status() {
                         Ok(s) if s.success() => {}
                         Ok(s) => {
                             eprint!(
@@ -186,8 +186,8 @@ impl<T: Read + Write + imap::extensions::idle::SetReadTimeout> Connection<T> {
                 }
                 let body = body.trim_end();
 
-                println!("! {}", title);
-                println!("{}", body);
+                // println!("! {}", title);
+                // println!("{}", body);
                 if let Some(mut n) = notification.take() {
                     n.summary(&title).body(&format!(
                         "{}",
@@ -322,32 +322,7 @@ fn main() {
         return;
     }
 
-    // Create a new application
-    let mut app = match systray::Application::new() {
-        Ok(app) => app,
-        Err(e) => {
-            println!("Could not create gtk application: {}", e);
-            return;
-        }
-    };
-    if let Err(e) = app.set_icon_from_file("/usr/share/icons/Faenza/stock/24/stock_disconnect.png")
-    {
-        println!("Could not set application icon: {}", e);
-    }
-
     let (tx, rx) = mpsc::channel();
-    let tx_close = std::sync::Mutex::new(tx.clone());
-    if let Err(e) = app.add_menu_item("Quit", move |window| {
-        tx_close.lock().unwrap().send(None).unwrap();
-        window.quit();
-        Ok::<_, systray::Error>(())
-    }) {
-        println!("Could not add application Quit menu option: {}", e);
-    }
-
-    // TODO: w.set_tooltip(&"Whatever".to_string());
-    // TODO: app.wait_for_message();
-
     let accounts: Vec<_> = accounts
         .par_iter()
         .filter_map(|account| {
@@ -381,8 +356,7 @@ fn main() {
     }
 
     // We have now connected
-    app.set_icon_from_file("/usr/share/icons/Faenza/stock/24/stock_connect.png")
-        .ok();
+    println!("Connected...");
 
     let mut unseen: Vec<_> = accounts.iter().map(|_| 0).collect();
     for (i, conn) in accounts.into_iter().enumerate() {
@@ -399,12 +373,9 @@ fn main() {
             break;
         };
         unseen[i] = num_unseen;
-        if unseen.iter().sum::<usize>() == 0 {
-            app.set_icon_from_file("/usr/share/icons/oxygen/base/32x32/status/mail-unread.png")
-                .unwrap();
-        } else {
-            app.set_icon_from_file("/usr/share/icons/oxygen/base/32x32/status/mail-unread-new.png")
-                .unwrap();
+        match unseen.iter().sum::<usize>() {
+            0 => println!(" "),
+            len @ _ => println!(" {}", len),
         }
     }
 }
