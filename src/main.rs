@@ -335,6 +335,7 @@ fn main() {
                             "Failed to connect account {}: {}; retrying in {}s",
                             account.name, e, wait
                         );
+                        println!(" ");
                         thread::sleep(Duration::from_secs(wait));
                     }
                     Err(e) => {
