@@ -353,6 +353,7 @@ fn main() {
 
     if accounts.is_empty() {
         println!("No accounts in config worked; exiting...");
+        println!(" ");
         return;
     }
 
