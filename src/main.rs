@@ -80,6 +80,7 @@ impl<T: Read + Write + imap::extensions::idle::SetReadTimeout> Connection<T> {
                 }
                 Err(e) => {
                     eprintln!("failed to connect to {}: {:?}", self.account.name, e);
+                    println!("  ");
                     thread::sleep(Duration::from_secs(wait));
                 }
             }
